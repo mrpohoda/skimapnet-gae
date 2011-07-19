@@ -1,31 +1,41 @@
-#!/usr/bin/env python
-#
-# Copyright 2007 Google Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+# -*- coding: utf-8 -*-
+"""skimapnet KML API"""
+
+
+
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import util
 
 
-class MainHandler(webapp.RequestHandler):
+
+class ApiHandler(webapp.RequestHandler):
+    """View to handle GET KML API requests."""
+    
+    def get(self, *args):
+        bounds = ((args[0], args[1]), (args[2], args[3]))
+        
+        #self.response.out.write('API.')
+        print bounds
+
+
+
+class UpdateFormHandler(webapp.RequestHandler):
+    """View to upload a new version of KML data."""
+    
     def get(self):
-        self.response.out.write('Ahoj Honzo...!')
+        self.response.out.write('Here be dragons.')
+
 
 
 def main():
-    application = webapp.WSGIApplication([('/', MainHandler)], debug=True)
+    """Bootstrap."""
+    
+    routes = [(r'/bounds/([\d\.\-]+)/([\d\.\-]+)/([\d\.\-]+)/([\d\.\-]+)/', ApiHandler),
+              (r'/', UpdateFormHandler)]
+    
+    application = webapp.WSGIApplication(routes, debug=True)
     util.run_wsgi_app(application)
+
 
 
 if __name__ == '__main__':

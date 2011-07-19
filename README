@@ -5,3 +5,8 @@ Roadmap
 - http://www.google.com/fusiontables/DataSource?dsrcid=1132473 ... sample fusion table (KML, exports)
 - create simple updating form to load big KML with data
 - create simple REST (GET) service http://stackoverflow.com/questions/1788041/how-to-create-a-rest-service-with-google-app-engine-and-python/1789226#1789226
+
+Notes
+=====
+- live web http://ski-map.net/
+- sample bounds: 46.2911,7.440;46.3803,7.553 -> bounds/46.2911/7.440/46.3803/7.553
