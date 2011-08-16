@@ -2,13 +2,19 @@
 """skimapnet KML API"""
 
 
-
 from google.appengine.ext import webapp
-from google.appengine.ext.webapp import util
+from google.appengine.ext.webapp import template, util
+import os
 
 
+class BaseHandler(webapp.RequestHandler):
+    
+    def render_template(self, file, params={}):
+        path = os.path.join(os.path.dirname(__file__), 'templates', file)
+        self.response.out.write(template.render(path, params))
 
-class ApiHandler(webapp.RequestHandler):
+
+class ApiHandler(BaseHandler):
     """View to handle GET KML API requests."""
     
     def get(self, *args):
@@ -18,24 +24,21 @@ class ApiHandler(webapp.RequestHandler):
         print bounds
 
 
-
-class UpdateFormHandler(webapp.RequestHandler):
+class UpdateFormHandler(BaseHandler):
     """View to upload a new version of KML data."""
     
     def get(self):
-        self.response.out.write('Here be dragons.')
-
+        self.render_template('update.html', {})
 
 
 def main():
     """Bootstrap."""
     
     routes = [(r'/bounds/([\d\.\-]+)/([\d\.\-]+)/([\d\.\-]+)/([\d\.\-]+)/', ApiHandler),
-              (r'/', UpdateFormHandler)]
+              (r'/update/', UpdateFormHandler)]
     
     application = webapp.WSGIApplication(routes, debug=True)
     util.run_wsgi_app(application)
-
 
 
 if __name__ == '__main__':
