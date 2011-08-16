@@ -1,1 +1,76 @@
-Here be dragons.
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title></title>
+</head>
+<body>
+	<h1>Nahrávání nových dat</h1>
+	<form action="/update/" method="post" enctype="multipart/form-data">
+		<fieldset>
+			<legend>Lyžařské trasy</legend>
+			<ul>
+				<li>
+					<label for="ski_tracks_kml">KML s lyžařskými trasami:</label>
+					<input id="ski_tracks_kml" type="file" name="ski_tracks_kml">
+				</li>
+				<li>
+					Smazat databázi tras a <input type="submit" value="nahrát nové"> ze souboru.
+				</li>
+			</ul>
+		</fieldset>
+		<fieldset>
+			<legend>Hotely</legend>
+			<ul>
+				<li>
+					<label for="hotels_cvs">CVS s hotely:</label>
+					<input id="hotels_cvs" type="file" name="hotels_cvs">
+				</li>
+				<li>
+					Smazat databázi hotelů pro cestovní kancelář
+					<select name="hotels_travel_agency">{% for agency in travel_agencies %}<option id="{{ agency.id }}">{{ agency.name }}</option>{% endfor %}</select>
+					a <input type="submit" value="nahrát nové"> ze souboru.
+				</li>
+			</ul>
+		</fieldset>
+	</form>
+	
+	<fieldset>
+		<legend>Cestovní kanceláře</legend>
+		<form action="/travel-agency/create/" method="post">
+			<ul>
+				<li>
+					<label for="name">Nová cestovní kancelář:</label>
+					<input id="name" name="name">
+				</li>
+				<li>
+					<input type="submit" value="Přidat"> novou cestovní kancelář.
+				</li>
+			</ul>
+		</form>
+		
+		<form action="/travel-agency/delete/" method="post">
+			{% if not travel_agencies %}
+				<p>V databázi nejsou zatím žádné cestovní kanceláře.</p>
+			{% else %}
+				<table>
+					<thead><tr>
+						<th>ID</th>
+						<th>Název</th>
+						<th>Akce</th>
+					</tr></thead>
+					{% for agency in travel_agencies %}
+					<tr>
+						<td>#{{ agency.key.id }}</td>
+						<td>{{ agency.name }}</td>
+						<td><input type="checkbox" name="id" value="{{ agency.key.id }}"></td>
+					</tr>
+					{% endfor %}
+				</table>
+				<p>Označené kanceláře <input type="submit" value="smazat"> i s hotely.</p>
+			{% endif %}
+		</form>
+	</fieldset>
+	
+</body>
+</html>
