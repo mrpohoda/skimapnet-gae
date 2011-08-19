@@ -20,7 +20,7 @@ class BaseHandler(webapp.RequestHandler):
 class ApiHandler(BaseHandler):
     
     def render_as_json(self, contents):
-        #self.response.headers.add_header('content-type', 'application/json', charset='utf-8')
+        self.response.headers.add_header('content-type', 'application/json', charset='utf-8')
         self.response.out.write(json.dumps(contents))
     
 
