@@ -17,6 +17,14 @@ class ImportParser(object):
 
 class TracksImportParser(ImportParser):
     
+    def _normalize_coords(self, coords):
+        coords = coords.split(',')[:2]
+        coords.reverse() # beware to have lat/lng in the right order
+        return coords
+    
+    def _normalize_color(self, color):
+        return '#' + color[2:]
+    
     def parse(self):
         # parse KML
         ns = 'http://www.opengis.net/kml/2.2'
@@ -51,13 +59,13 @@ class TracksImportParser(ImportParser):
         for line in lines:
             # apply styles
             if line['style'] in styles:
-                line['color'] = styles[line['style']]
+                line['color'] = self._normalize_color(styles[line['style']])
             elif line['style'] in style_maps:
-                line['color'] = styles[style_maps[line['style']]]
+                line['color'] = self._normalize_color(styles[style_maps[line['style']]])
             del line['style']
             
-            # normalize coords
-            line['coords'] = [coord.split(',')[:2] for coord in coords_sep_re.split(line['coords'])]
+            # coords
+            line['coords'] = [self._normalize_coords(coords) for coords in coords_sep_re.split(line['coords'])]
             
             yield line
     

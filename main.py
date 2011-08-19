@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 
+from django.utils import simplejson as json
+from geo import geotypes
 from google.appengine.ext import db, webapp
 from google.appengine.ext.webapp import template, util
-from model import TravelAgency, Track, Point, Hotel
+from model import TravelAgency, Track, TrackPoint, Hotel
 from parsing import TracksImportParser
 import os
 
@@ -16,13 +18,39 @@ class BaseHandler(webapp.RequestHandler):
 
 
 class ApiHandler(BaseHandler):
-    """View to handle GET KML API requests."""
+    
+    def render_as_json(self, contents):
+        #self.response.headers.add_header('content-type', 'application/json', charset='utf-8')
+        self.response.out.write(json.dumps(contents))
+    
+
+class TracksHandler(ApiHandler):
+    """View to provide tracks."""
+    
+    RESPONSE_SIZE = 1000
     
     def get(self, *args):
-        bounds = ((args[0], args[1]), (args[2], args[3]))
+        args = [float(x) for x in args]
+        bounds = geotypes.Box(*args)
         
-        #self.response.out.write('API.')
-        print bounds
+        tracks = {}
+        for point in TrackPoint.bounding_box_fetch(TrackPoint.all().order('order'), bounds, max_results=TracksHandler.RESPONSE_SIZE):
+            track_id = point.track.key().id()
+            if track_id not in tracks:
+                tracks[track_id] = {'id': track_id, 'color': point.track.color, 'points': []}
+            tracks[track_id]['points'].append({'lat': point.location.lat, 'lng': point.location.lon, 'order': point.order})
+        
+        self.render_as_json({
+            'bounds': args,
+            'tracks': tracks.values(),
+        })
+
+
+class HotelsHandler(ApiHandler):
+    """View to provide hotels."""
+    
+    def get(self, *args):
+        pass
 
 
 class TravelAgencyHandler(BaseHandler):
@@ -49,7 +77,7 @@ class AdminPageHandler(BaseHandler):
         self.render_template('admin.html', {
             'travel_agencies': list(TravelAgency.all().order('name')),
             'tracks_count': Track.all().count(),
-            'points_count': Point.all().count(),
+            'points_count': TrackPoint.all().count(),
             'hotels_count': Hotel.all().count(),
         })
         
@@ -59,8 +87,8 @@ class UpdateHandler(BaseHandler):
     
     def _update_ski_tracks(self, file_contents):
         # delete all existing data
+        db.delete(TrackPoint.all())
         db.delete(Track.all())
-        db.delete(Point.all())
         
         # save new data
         for line in TracksImportParser(file_contents).parse():
@@ -68,9 +96,8 @@ class UpdateHandler(BaseHandler):
             track.put()
 
             points = []
-            for coords in line['coords']:
-                coords.reverse() # to have lat/lng in the right order
-                point = Point(parent=track, location=db.GeoPt(*coords))
+            for i, coords in enumerate(line['coords']):
+                point = TrackPoint(order=i, track=track, location=db.GeoPt(*coords))
                 point.update_location()
                 points.append(point)
             db.put(points)
@@ -89,7 +116,8 @@ class UpdateHandler(BaseHandler):
 def main():
     """Bootstrap."""
     
-    routes = [(r'/bounds/([\d\.\-]+)/([\d\.\-]+)/([\d\.\-]+)/([\d\.\-]+)/', ApiHandler),
+    routes = [(r'/tracks/bounds/([\d\.\-]+)/([\d\.\-]+)/([\d\.\-]+)/([\d\.\-]+)/', TracksHandler),
+              (r'/hotels/bounds/([\d\.\-]+)/([\d\.\-]+)/([\d\.\-]+)/([\d\.\-]+)/', HotelsHandler),
               (r'/admin/', AdminPageHandler),
               (r'/update/([\w\-]+)/', UpdateHandler),
               (r'/travel-agency/([\w\-]+)/', TravelAgencyHandler)]

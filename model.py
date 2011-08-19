@@ -14,11 +14,12 @@ class Track(db.Model):
     color = db.StringProperty(required=True)
 
 
-class Point(GeoModel):
-    pass
+class TrackPoint(GeoModel):
+    track = db.ReferenceProperty(Track)
+    order = db.IntegerProperty(required=True)
 
 
-class Hotel(Point):
+class Hotel(GeoModel):
     category = db.CategoryProperty(required=True)
     name = db.StringProperty(required=True)
     description = db.StringProperty()
