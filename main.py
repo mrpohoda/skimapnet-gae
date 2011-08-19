@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 
 
-from StringIO import StringIO
 from google.appengine.ext import db, webapp
 from google.appengine.ext.webapp import template, util
-from models import TravelAgency
+from model import TravelAgency, Track, Point, Hotel
+from parsing import TracksImportParser
 import os
-import re
-import xml.etree.ElementTree as ElementTree
 
 
 class BaseHandler(webapp.RequestHandler):
@@ -50,6 +48,9 @@ class AdminPageHandler(BaseHandler):
     def get(self):
         self.render_template('admin.html', {
             'travel_agencies': list(TravelAgency.all().order('name')),
+            'tracks_count': Track.all().count(),
+            'points_count': Point.all().count(),
+            'hotels_count': Hotel.all().count(),
         })
         
 
@@ -57,51 +58,22 @@ class UpdateHandler(BaseHandler):
     """View handling upload of a new version of KML/CVS data."""
     
     def _update_ski_tracks(self, file_contents):
-        print 'debug'
+        # delete all existing data
+        db.delete(Track.all())
+        db.delete(Point.all())
         
-        # parse KML
-        ns = 'http://www.opengis.net/kml/2.2'
-        context = iter(ElementTree.iterparse(StringIO(file_contents), events=('start', 'end')))
-        _, root = context.next()
-        
-        style_maps = {}
-        styles = {}
-        lines = []
-        for event, elem in context:
-            if event == 'end':
-                if elem.tag == ('{%s}StyleMap' % ns):
-                    # style mapping
-                    for pair in elem.findall('.//{%s}Pair' % ns):
-                        if pair.find('{%s}key' % ns).text == 'normal':
-                            style_maps[elem.attrib['id']] = pair.find('{%s}styleUrl' % ns).text.lstrip('#')
-                            
-                elif elem.tag == ('{%s}Style' % ns):
-                    styles[elem.attrib['id']] = elem.find('{%s}LineStyle/{%s}color' % (ns, ns)).text
-                    
-                elif elem.tag == ('{%s}Placemark' % ns):
-                    style = elem.find('{%s}styleUrl' % ns).text.lstrip('#')
-                    for line in elem.findall('.//{%s}LineString' % ns):
-                        lines.append({
-                            'coords': line.find('{%s}coordinates' % ns).text.strip(),
-                            'style': style,
-                        })
-        root.clear()
-        
-        # process line by line and prepare for saving
-        coords_sep_re = re.compile(r'\s+')
-        for line in lines:
-            # apply styles
-            if line['style'] in styles:
-                line['color'] = styles[line['style']]
-            elif line['style'] in style_maps:
-                line['color'] = styles[style_maps[line['style']]]
-            del line['style']
-            
-            # normalize coords
-            line['coords'] = [coord.split(',')[:2] for coord in coords_sep_re.split(line['coords'])]
-            
-        # TODO save
-        print lines
+        # save new data
+        for line in TracksImportParser(file_contents).parse():
+            track = Track(color=line['color'])
+            track.put()
+
+            points = []
+            for coords in line['coords']:
+                coords.reverse() # to have lat/lng in the right order
+                point = Point(parent=track, location=db.GeoPt(*coords))
+                point.update_location()
+                points.append(point)
+            db.put(points)
     
     def _update_hotels(self, file_contents, travel_agency_id):
         pass
@@ -111,7 +83,7 @@ class UpdateHandler(BaseHandler):
             self._update_ski_tracks(self.request.get('ski_tracks_kml'))
         elif action == 'hotels':
             self._update_hotels(self.request.get('hotels_cvs'), self.request.get('hotels_travel_agency'))
-        #self.redirect('/admin/')
+        self.redirect('/admin/')
 
 
 def main():

@@ -9,6 +9,7 @@
 	<form action="/update/ski-tracks/" method="post" enctype="multipart/form-data">
 		<fieldset>
 			<legend>Lyžařské trasy</legend>
+			<p>Právě je v databázi <strong>{{ tracks_count }}</strong> tras nad <strong>{{ points_count }}</strong> body.</p>
 			<ul>
 				<li>
 					<label for="ski_tracks_kml">KML s lyžařskými trasami:</label>
@@ -23,6 +24,7 @@
 	<form action="/update/hotels/" method="post" enctype="multipart/form-data">
 		<fieldset>
 			<legend>Hotely</legend>
+			<p>Právě je v databázi <strong>{{ hotels_count }}</strong> hotelů.</p>
 			<ul>
 				<li>
 					<label for="hotels_cvs">CVS s hotely:</label>
