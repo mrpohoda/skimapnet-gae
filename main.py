@@ -5,6 +5,7 @@ from django.utils import simplejson as json
 from geo import geotypes
 from google.appengine.ext import db, webapp
 from google.appengine.ext.webapp import template, util
+from importing import TracksImportLoader
 from model import TravelAgency, Track, TrackPoint, Hotel
 from parsing import TracksImportParser
 import os
@@ -33,16 +34,21 @@ class TracksHandler(ApiHandler):
         args = [float(x) for x in args]
         bounds = geotypes.Box(*args)
         
-        tracks = {}
-        for point in TrackPoint.bounding_box_fetch(TrackPoint.all().order('order'), bounds, max_results=TracksHandler.RESPONSE_SIZE):
-            track_id = point.track.key().id()
-            if track_id not in tracks:
-                tracks[track_id] = {'id': track_id, 'color': point.track.color, 'points': []}
-            tracks[track_id]['points'].append({'lat': point.location.lat, 'lng': point.location.lon, 'order': point.order})
-        
+        tracks = []
+        for track in Track.bounding_box_fetch(Track.all(), bounds, max_results=TracksHandler.RESPONSE_SIZE):
+            tracks.append({
+                'id': track.key().id(),
+                'color': track.color,
+                'points': [{
+                    'lat': point.location.lat,
+                    'lng': point.location.lon,
+                    'order': point.order,
+                } for point in track.points.order('order')],
+            })
+            
         self.render_as_json({
             'bounds': args,
-            'tracks': tracks.values(),
+            'tracks': tracks,
         })
 
 
@@ -91,16 +97,7 @@ class UpdateHandler(BaseHandler):
         db.delete(Track.all())
         
         # save new data
-        for line in TracksImportParser(file_contents).parse():
-            track = Track(color=line['color'])
-            track.put()
-
-            points = []
-            for i, coords in enumerate(line['coords']):
-                point = TrackPoint(order=i, track=track, location=db.GeoPt(*coords))
-                point.update_location()
-                points.append(point)
-            db.put(points)
+        TracksImportLoader().load(TracksImportParser(file_contents).parse())
     
     def _update_hotels(self, file_contents, travel_agency_id):
         pass

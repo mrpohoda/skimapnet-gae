@@ -10,12 +10,12 @@ class TravelAgency(db.Model):
     name = db.StringProperty(required=True)
     
     
-class Track(db.Model):
+class Track(GeoModel):
     color = db.StringProperty(required=True)
 
 
 class TrackPoint(GeoModel):
-    track = db.ReferenceProperty(Track)
+    track = db.ReferenceProperty(Track, collection_name='points')
     order = db.IntegerProperty(required=True)
 
 

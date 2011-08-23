@@ -20,3 +20,8 @@ indexes:
   properties:
   - name: location_geocells
   - name: order
+
+- kind: TrackPoint
+  properties:
+  - name: track
+  - name: order
